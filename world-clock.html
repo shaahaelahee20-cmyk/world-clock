@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>World Clock</title>
+<style>
+:root{
+  --bg:#eef3f1; --panel:#ffffff; --ink:#12302b; --muted:#5d7872; --line:#d3e0dc;
+  --accent:#0b7a6b; --accent-ink:#ffffff; --good:#1c8a4a; --ok:#b7791f; --night:#5b5f9e; --dst:#c2410c;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1b19; --panel:#152724; --ink:#e3f1ee; --muted:#8fb0a9; --line:#26403b;
+    --accent:#3fc2ad; --accent-ink:#06211c; --good:#4ade80; --ok:#fbbf24; --night:#a5a9f0; --dst:#fb923c;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1b19; --panel:#152724; --ink:#e3f1ee; --muted:#8fb0a9; --line:#26403b;
+  --accent:#3fc2ad; --accent-ink:#06211c; --good:#4ade80; --ok:#fbbf24; --night:#a5a9f0; --dst:#fb923c;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;line-height:1.4}
+main{max-width:1000px;margin:0 auto;padding:20px 16px 40px}
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
+h1{font-size:1.7rem;margin:0;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:2px 0 0;font-size:.95rem}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--panel)}
+.seg button{border:0;background:transparent;color:var(--ink);padding:8px 16px;font:inherit;font-weight:600;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.card.home{border-color:var(--accent);border-width:2px}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.city{font-weight:700;font-size:1.1rem}
+.off{color:var(--muted);font-size:.85rem;white-space:nowrap}
+.time{font-size:2.5rem;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em;margin:6px 0 2px}
+.time small{font-size:1rem;font-weight:600;margin-left:6px;color:var(--muted)}
+.date{color:var(--ink);font-size:.95rem}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.tag{font-size:.78rem;font-weight:600;padding:2px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.tag.dst{color:var(--dst);border-color:var(--dst)}
+.tag.day{color:var(--accent);border-color:var(--accent)}
+section.planner{margin-top:34px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px 18px}
+h2{margin:0 0 4px;font-size:1.3rem}
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin:14px 0}
+label{display:flex;flex-direction:column;font-size:.85rem;color:var(--muted);gap:4px;font-weight:600}
+input[type=date],input[type=time]{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);color-scheme:light dark}
+.btn{font:inherit;font-weight:600;padding:9px 14px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:520px}
+th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);font-size:.95rem}
+th{color:var(--muted);font-weight:600;font-size:.82rem}
+td.t{font-weight:700;font-variant-numeric:tabular-nums}
+.st{font-weight:600}
+.st.good{color:var(--good)} .st.ok{color:var(--ok)} .st.night{color:var(--night)}
+.note{color:var(--muted);font-size:.82rem;margin:12px 0 0}
+
+/* Touch and phone support */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+button,input{touch-action:manipulation}
+.seg button,.btn,input[type=date],input[type=time]{min-height:44px}
+input[type=date],input[type=time]{font-size:16px}
+main{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+@media (max-width:600px){
+  main{padding-top:14px;padding-bottom:28px}
+  header{align-items:stretch}
+  h1{font-size:1.45rem}
+  .seg{width:100%}
+  .seg button{flex:1}
+  .grid{grid-template-columns:1fr;gap:10px}
+  .card{padding:14px 16px}
+  .time{font-size:2.2rem}
+  section.planner{padding:16px 14px;margin-top:24px}
+  .controls{flex-direction:column;align-items:stretch;gap:10px}
+  .controls label{width:100%}
+  .controls input{width:100%}
+  .btn{width:100%}
+  table{min-width:0}
+  thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  table,tbody,tr,td{display:block;width:100%}
+  tr{border:1px solid var(--line);border-radius:10px;padding:6px 12px;margin-bottom:10px}
+  td{display:flex;justify-content:space-between;gap:12px;border-bottom:0;padding:6px 0;text-align:right}
+  td::before{content:attr(data-label);color:var(--muted);font-weight:600;font-size:.82rem;text-align:left;flex:none}
+  td[colspan]{display:block;text-align:left}
+  td[colspan]::before{content:none}
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>World Clock</h1>
+      <p class="sub">Live time in six cities, with daylight saving applied automatically.</p>
+    </div>
+    <div class="seg" role="group" aria-label="Time format">
+      <button id="b12" type="button" aria-pressed="false">12h</button>
+      <button id="b24" type="button" aria-pressed="true">24h</button>
+    </div>
+  </header>
+
+  <div class="grid" id="grid" aria-live="off"></div>
+
+  <section class="planner" aria-labelledby="ph">
+    <h2 id="ph">Meeting planner</h2>
+    <p class="sub">Pick a date and a Mauritius time to see the local time in every city.</p>
+    <div class="controls">
+      <label>Date (Mauritius)<input type="date" id="pdate"></label>
+      <label>Time (Mauritius)<input type="time" id="ptime" value="14:00"></label>
+      <button class="btn" type="button" id="pnow">Use current time</button>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>City</th><th>Local time</th><th>Date</th><th>Suitability</th></tr></thead>
+        <tbody id="pbody"></tbody>
+      </table>
+    </div>
+    <p class="note">Business hours are 09:00–18:00 local. Early evening and early morning (07:00–09:00, 18:00–22:00) are marked as outside hours.</p>
+  </section>
+</main>
+
+<script>
+(function(){
+  "use strict";
+  var HOME = "Indian/Mauritius";
+  var CITIES = [
+    {name:"Port Louis", tz:"Indian/Mauritius"},
+    {name:"London",     tz:"Europe/London"},
+    {name:"Paris",      tz:"Europe/Paris"},
+    {name:"Dubai",      tz:"Asia/Dubai"},
+    {name:"Mumbai",     tz:"Asia/Kolkata"},
+    {name:"New York",   tz:"America/New_York"}
+  ];
+  var is24 = true;
+  try { var saved = localStorage.getItem("wc-24h"); if (saved !== null) is24 = saved === "1"; } catch(e){}
+
+  var fmtCache = {};
+  function fmt(tz){
+    if(!fmtCache[tz]){
+      fmtCache[tz] = new Intl.DateTimeFormat("en-US",{
+        timeZone:tz, hourCycle:"h23", year:"numeric", month:"numeric", day:"numeric",
+        hour:"numeric", minute:"numeric", second:"numeric", weekday:"short"
+      });
+    }
+    return fmtCache[tz];
+  }
+  var MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+  function zoned(tz, date){
+    var o = {};
+    fmt(tz).formatToParts(date).forEach(function(p){ if(p.type!=="literal") o[p.type]=p.value; });
+    return {
+      y:+o.year, mo:+o.month, d:+o.day, h:(+o.hour)%24, mi:+o.minute, s:+o.second, wd:o.weekday
+    };
+  }
+  function offsetMin(tz, date){
+    var z = zoned(tz, date);
+    var asUTC = Date.UTC(z.y, z.mo-1, z.d, z.h, z.mi, z.s);
+    var real = Math.floor(date.getTime()/1000)*1000;
+    return Math.round((asUTC - real)/60000);
+  }
+  function offsetLabel(min){
+    var sign = min<0 ? "-" : "+", a = Math.abs(min), h = Math.floor(a/60), m = a%60;
+    return "UTC" + sign + h + (m ? ":" + (m<10?"0":"") + m : "");
+  }
+  function isDST(tz, date){
+    var y = zoned(tz, date).y;
+    var jan = offsetMin(tz, new Date(Date.UTC(y,0,1)));
+    var jul = offsetMin(tz, new Date(Date.UTC(y,6,1)));
+    if(jan === jul) return false;
+    return offsetMin(tz, date) === Math.max(jan, jul);
+  }
+  function pad(n){ return (n<10?"0":"") + n; }
+  function timeStr(z, withSec){
+    var h = z.h, suffix = "";
+    if(!is24){ suffix = h>=12 ? "PM" : "AM"; h = h%12 || 12; }
+    else h = pad(h);
+    return { text: h + ":" + pad(z.mi) + (withSec ? ":" + pad(z.s) : ""), suffix: suffix };
+  }
+  function dayNum(z){ return Math.round(Date.UTC(z.y, z.mo-1, z.d)/864e5); }
+  function relDay(diff){
+    if(diff===0) return "";
+    if(diff===1) return "Tomorrow";
+    if(diff===-1) return "Yesterday";
+    return (diff>0?"+":"") + diff + " days";
+  }
+  function dateStr(z){ return z.wd + ", " + z.d + " " + MONTHS[z.mo-1] + " " + z.y; }
+
+  var grid = document.getElementById("grid");
+  function renderClocks(){
+    var now = new Date();
+    var home = zoned(HOME, now);
+    var html = "";
+    CITIES.forEach(function(c){
+      var z = zoned(c.tz, now);
+      var t = timeStr(z, true);
+      var diff = dayNum(z) - dayNum(home);
+      var rel = relDay(diff);
+      var dst = isDST(c.tz, now);
+      html += '<article class="card' + (c.tz===HOME?' home':'') + '">' +
+        '<div class="top"><span class="city">' + c.name + '</span><span class="off">' + offsetLabel(offsetMin(c.tz, now)) + '</span></div>' +
+        '<div class="time">' + t.text + (t.suffix ? '<small>' + t.suffix + '</small>' : '') + '</div>' +
+        '<div class="date">' + dateStr(z) + '</div>' +
+        '<div class="tags">' +
+          (c.tz===HOME ? '<span class="tag">Home</span>' : '') +
+          (rel ? '<span class="tag day">' + rel + '</span>' : '') +
+          (dst ? '<span class="tag dst">Daylight saving</span>' : '') +
+        '</div></article>';
+    });
+    grid.innerHTML = html;
+  }
+
+  // Meeting planner
+  var pdate = document.getElementById("pdate");
+  var ptime = document.getElementById("ptime");
+  var pbody = document.getElementById("pbody");
+
+  function setNow(){
+    var z = zoned(HOME, new Date());
+    pdate.value = z.y + "-" + pad(z.mo) + "-" + pad(z.d);
+    ptime.value = pad(z.h) + ":" + pad(z.mi);
+    renderPlanner();
+  }
+  function renderPlanner(){
+    var dm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(pdate.value);
+    var tm = /^(\d{2}):(\d{2})$/.exec(ptime.value);
+    if(!dm || !tm){
+      pbody.innerHTML = '<tr><td colspan="4">Enter a date and a time to see the conversion.</td></tr>';
+      return;
+    }
+    var homeOffset = offsetMin(HOME, new Date(Date.UTC(+dm[1], +dm[2]-1, +dm[3], 12)));
+    var instant = new Date(Date.UTC(+dm[1], +dm[2]-1, +dm[3], +tm[1], +tm[2]) - homeOffset*60000);
+    var home = zoned(HOME, instant);
+    var html = "";
+    CITIES.forEach(function(c){
+      var z = zoned(c.tz, instant);
+      var t = timeStr(z, false);
+      var diff = dayNum(z) - dayNum(home);
+      var rel = relDay(diff);
+      var cls, label;
+      if(z.h>=9 && z.h<18){ cls="good"; label="Business hours"; }
+      else if((z.h>=7 && z.h<9) || (z.h>=18 && z.h<22)){ cls="ok"; label="Outside hours"; }
+      else { cls="night"; label="Night"; }
+      html += '<tr><td data-label="City"><strong>' + c.name + "</strong></td>" +
+        '<td class="t" data-label="Local time">' + t.text + (t.suffix ? " " + t.suffix : "") + "</td>" +
+        '<td data-label="Date">' + dateStr(z) + (rel ? " (" + rel.toLowerCase() + ")" : "") + "</td>" +
+        '<td class="st ' + cls + '" data-label="Suitability">' + label + "</td></tr>";
+    });
+    pbody.innerHTML = html;
+  }
+
+  function setFormat(v){
+    is24 = v;
+    document.getElementById("b24").setAttribute("aria-pressed", String(v));
+    document.getElementById("b12").setAttribute("aria-pressed", String(!v));
+    try { localStorage.setItem("wc-24h", v ? "1" : "0"); } catch(e){}
+    renderClocks(); renderPlanner();
+  }
+
+  document.getElementById("b24").addEventListener("click", function(){ setFormat(true); });
+  document.getElementById("b12").addEventListener("click", function(){ setFormat(false); });
+  document.getElementById("pnow").addEventListener("click", setNow);
+  pdate.addEventListener("input", renderPlanner);
+  ptime.addEventListener("input", renderPlanner);
+
+  document.getElementById("b24").setAttribute("aria-pressed", String(is24));
+  document.getElementById("b12").setAttribute("aria-pressed", String(!is24));
+  renderClocks();
+  setNow();
+  setInterval(renderClocks, 1000);
+})();
+</script>
+</body>
+</html>
